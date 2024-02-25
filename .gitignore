@@ -1,0 +1,13 @@
+﻿**/Data/
+**/Model
+**/Data/Raw
+2024*
+*.csv
+*.pdf
+*.zip
+*.idea
+*.parquet
+*.py
+*.txt
+*.html
+
