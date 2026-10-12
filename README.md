@@ -1,4 +1,6 @@
-# Reconhecimento de Atividades Humanas com LSTM + Atenção
+# Human Activity Recognition with Attention-based LSTMs
+
+🇺🇸 English · [🇧🇷 Português](README.pt-BR.md)
 
 ![Python](https://img.shields.io/badge/Python-3.8-3776AB?logo=python&logoColor=white)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-FF6F00?logo=tensorflow&logoColor=white)
@@ -6,134 +8,132 @@
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white)
 ![TFLite](https://img.shields.io/badge/TFLite-on--device-FF6F00?logo=tensorflow&logoColor=white)
 
-Classificação de atividades humanas (andar, correr, subir escadas, sentar etc.) a partir de sinais de **acelerômetro e giroscópio** de smartwatch e smartphone, usando redes **LSTM com mecanismo de atenção**. Os modelos foram avaliados em **5 bases públicas** e o melhor foi exportado para **TensorFlow Lite**, para rodar no próprio dispositivo.
+Classification of human activities (walking, jogging, climbing stairs, sitting, etc.) from smartwatch and smartphone **accelerometer and gyroscope** signals, using **LSTM networks with an attention mechanism**. The models were evaluated on **5 public datasets**, and the best one was exported to **TensorFlow Lite** to run on the device itself.
 
-_Projeto desenvolvido entre janeiro e dezembro de 2024 (veja a [linha do tempo](#linha-do-tempo) e o histórico de commits). A organização e a documentação do repositório são de 2026._
+_Developed between January and December 2024 (see the [timeline](#timeline) and the commit history). The repository was organized and documented in 2026._
 
-> **English summary.** Human Activity Recognition (HAR) from wearable accelerometer and gyroscope signals with attention-based LSTMs. Evaluated on 5 public datasets (WISDM, UCI-HAPT, KU-HAR, UniMiB-SHAR, FORTH-TRACE) with subject-wise splits, time-series data augmentation and Keras Tuner hyperparameter search. Best model: **95% accuracy / 0.95 macro-F1 on unseen test subjects** (WISDM smartwatch, 6 activities), exported to TFLite.
+## Highlights
 
-## Destaques
+- **95% accuracy and 0.95 macro-F1** on participants the model had never seen (WISDM, smartwatch, 6 activities).
+- Attention adds **+4 p.p.** over a plain LSTM, and the sliding window adds **+4 to +10 p.p.**, both measured on the same test set.
+- **Subject-wise split**: no person appears in both training and test data, which avoids the data leakage that is common in HAR.
+- **Time-series data augmentation**: jittering, rotation and translation, time warping, magnitude scaling, cropping, interpolation between samples, and synthetic transitions.
+- **Hyperparameter search** with Keras Tuner (LSTM units, L2 regularization, learning rate, CNN filters, dropout).
+- **TFLite export**, with inference validated through `tf.lite.Interpreter`.
 
-- **95% de acurácia e F1 macro de 0,95** em participantes que o modelo nunca viu (WISDM, smartwatch, 6 atividades).
-- A atenção acrescenta **+4 p.p.** sobre uma LSTM simples, e a janela deslizante acrescenta **+4 a +10 p.p.**, ambos medidos no mesmo conjunto de teste.
-- **Divisão por participante** (_subject-wise_): nenhuma pessoa aparece em treino e teste ao mesmo tempo, o que evita o vazamento de dados comum em HAR.
-- **Aumento de dados para séries temporais**: _jittering_, rotação e translação, _time warping_, _magnitude scaling_, _crop_, interpolação entre amostras e transições sintéticas.
-- **Busca de hiperparâmetros** com Keras Tuner (unidades LSTM, regularização L2, taxa de aprendizado, filtros da CNN, dropout).
-- **Exportação para TFLite** com inferência validada pelo `tf.lite.Interpreter`.
+## Problem
 
-## Problema
+Recognizing activities from wearable sensors underpins health applications such as elderly monitoring, rehabilitation and sedentary-behavior detection. The main challenges are:
 
-Reconhecer atividades a partir de sensores vestíveis é a base de aplicações de saúde, como monitoramento de idosos, reabilitação e detecção de sedentarismo. As principais dificuldades são:
+- the signals are noisy and vary a lot from person to person;
+- classes are usually imbalanced;
+- the model has to be small enough to run on a watch or phone.
 
-- os sinais são ruidosos e variam muito de pessoa para pessoa;
-- as classes costumam ser desbalanceadas;
-- o modelo precisa ser leve para rodar no relógio ou no celular.
-
-O projeto investiga se um mecanismo de atenção sobre a saída da LSTM, que aprende _quais instantes da janela importam_, melhora a generalização para pessoas novas.
+This project investigates whether an attention mechanism over the LSTM output, which learns _which moments of the window matter_, improves generalization to new people.
 
 ## Datasets
 
-| Dataset                                                                                                                       | Dispositivo / sensores                                             | Classes usadas                                                     | Janela / passo (amostras)     |
-| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ | ----------------------------- |
-| [WISDM 2019](https://archive.ics.uci.edu/dataset/507/wisdm+smartphone+and+smartwatch+activity+and+biometrics+dataset)         | Smartwatch: acelerômetro + giroscópio (6 canais), 51 participantes | 6 de 18 (andar, correr, escadas, sentar, pegar bola, bater palmas) | 200 / 20                      |
-| [UCI-HAPT](https://archive.ics.uci.edu/dataset/341/smartphone+based+recognition+of+human+activities+and+postural+transitions) | Smartphone na cintura: acelerômetro + giroscópio                   | 7                                                                  | 128 / 16                      |
-| [KU-HAR](https://data.mendeley.com/datasets/45f952y38r/5)                                                                     | Smartphone: acelerômetro + giroscópio                              | 5                                                                  | 300 / 30                      |
-| [UniMiB-SHAR](http://www.sal.disco.unimib.it/technologies/unimib-shar/)                                                       | Smartphone: apenas acelerômetro (3 canais)                         | 5                                                                  | 151 (amostras já segmentadas) |
-| [FORTH-TRACE](https://github.com/spl-icsforth/FORTH_TRACE_DATASET)                                                            | Sensores vestíveis: 9 canais                                       | atividades + transições posturais                                  | 256 / 25                      |
+| Dataset | Device / sensors | Classes used | Window / step (samples) |
+| --- | --- | --- | --- |
+| [WISDM 2019](https://archive.ics.uci.edu/dataset/507/wisdm+smartphone+and+smartwatch+activity+and+biometrics+dataset) | Smartwatch: accelerometer + gyroscope (6 channels), 51 participants | 6 of 18 (walking, jogging, stairs, sitting, playing catch, clapping) | 200 / 20 |
+| [UCI-HAPT](https://archive.ics.uci.edu/dataset/341/smartphone+based+recognition+of+human+activities+and+postural+transitions) | Waist-mounted smartphone: accelerometer + gyroscope | 7 | 128 / 16 |
+| [KU-HAR](https://data.mendeley.com/datasets/45f952y38r/5) | Smartphone: accelerometer + gyroscope | 5 | 300 / 30 |
+| [UniMiB-SHAR](http://www.sal.disco.unimib.it/technologies/unimib-shar/) | Smartphone: accelerometer only (3 channels) | 5 | 151 (pre-segmented samples) |
+| [FORTH-TRACE](https://github.com/spl-icsforth/FORTH_TRACE_DATASET) | Wearable sensors: 9 channels | activities + postural transitions | 256 / 25 |
 
-Os dados não são versionados. Veja [`Data/README.md`](Data/README.md) para baixar e organizar cada base.
+The data is not versioned. See [`Data/README.md`](Data/README.md) to download and organize each dataset.
 
 ## Pipeline
 
 ```mermaid
 flowchart LR
-    A[Sinais brutos<br/>acelerômetro + giroscópio] --> B[Sincronização<br/>por participante e atividade]
-    B --> C[Filtragem<br/>média móvel / Butterworth]
-    C --> D[Janela deslizante<br/>só janelas com rótulo único]
-    D --> E[Divisão por participante<br/>treino / validação / teste]
-    E --> F[Balanceamento<br/>data augmentation, SMOTE,<br/>class weights]
+    A[Raw signals<br/>accelerometer + gyroscope] --> B[Synchronization<br/>by participant and activity]
+    B --> C[Filtering<br/>moving average / Butterworth]
+    C --> D[Sliding window<br/>single-label windows only]
+    D --> E[Subject-wise split<br/>train / validation / test]
+    E --> F[Balancing<br/>data augmentation, SMOTE,<br/>class weights]
     F --> G[Keras Tuner<br/>RandomSearch]
-    G --> H[Avaliação<br/>acurácia, F1 macro,<br/>matriz de confusão]
-    H --> I[Exportação TFLite]
+    G --> H[Evaluation<br/>accuracy, macro-F1,<br/>confusion matrix]
+    H --> I[TFLite export]
 ```
 
-## Arquiteturas
+## Architectures
 
-**Attention-LSTM** (modelo principal):
+**Attention-LSTM** (main model):
 
 ```
-Entrada (200 × 6)
-  → LSTM (32–256 unidades, L2 no kernel e nos pesos recorrentes, return_sequences=True)
-  → Atenção: Dense → softmax ao longo do tempo → ponderação da saída da LSTM → soma
+Input (200 × 6)
+  → LSTM (32–256 units, L2 on kernel and recurrent weights, return_sequences=True)
+  → Attention: Dense → softmax over time → weighting of the LSTM output → sum
   → Dense (softmax, n_classes)
 ```
 
-**CNN-1D + 2×LSTM + Self-Attention** (usado em UniMiB-SHAR e nas ablações do FORTH-TRACE):
+**1D-CNN + 2×LSTM + Self-Attention** (used on UniMiB-SHAR and in the FORTH-TRACE ablations):
 
 ```
-Entrada (T × canais)
-  → Conv1D (16–256 filtros, kernel 3 ou 5) → MaxPool → BatchNorm
+Input (T × channels)
+  → Conv1D (16–256 filters, kernel 3 or 5) → MaxPool → BatchNorm
   → LSTM → LSTM → Dense + Dropout
-  → keras.layers.Attention (self-attention) → soma no tempo
+  → keras.layers.Attention (self-attention) → sum over time
   → Dense (softmax)
 ```
 
-Baselines comparados em [`experiments/`](experiments/): LSTM simples, LSTM bidirecional e ConvLSTM2D.
+Baselines compared in [`experiments/`](experiments/): plain LSTM, bidirectional LSTM and ConvLSTM2D.
 
-Treinamento: Adam, entropia cruzada categórica, `EarlyStopping` (paciência 5, restaura os melhores pesos), `ReduceLROnPlateau` e TensorBoard.
+Training: Adam, categorical cross-entropy, `EarlyStopping` (patience 5, restores the best weights), `ReduceLROnPlateau` and TensorBoard.
 
-## Resultados
+## Results
 
-| Dataset             | Modelo                                 | Conjunto avaliado                                  | Acurácia | F1 macro |
-| ------------------- | -------------------------------------- | -------------------------------------------------- | -------- | -------- |
-| **WISDM** (6 ativ.) | **Attention-LSTM + janela deslizante** | **teste**: 5 participantes não vistos, 511 janelas | **0,95** | **0,95** |
-| WISDM (6 ativ.)     | LSTM simples + janela deslizante       | teste                                              | 0,91     | 0,91     |
-| WISDM (6 ativ.)     | Attention-LSTM, sem janela deslizante  | teste                                              | 0,91     | 0,91     |
-| WISDM (6 ativ.)     | LSTM simples, sem janela deslizante    | teste                                              | 0,81     | 0,81     |
-| UCI-HAPT (7)        | Attention-LSTM + augmentation          | validação (participantes separados)                | 0,97     | 0,94     |
-| KU-HAR (5)          | Attention-LSTM + augmentation          | validação                                          | 0,92     | 0,92     |
-| UniMiB-SHAR (5)     | CNN + 2×LSTM + atenção + augmentation  | validação (participantes separados)                | 0,88     | 0,78     |
-| FORTH-TRACE         | Attention-LSTM                         | validação (participantes separados)                | 0,91     | 0,78     |
+| Dataset | Model | Evaluated on | Accuracy | Macro-F1 |
+| --- | --- | --- | --- | --- |
+| **WISDM** (6 act.) | **Attention-LSTM + sliding window** | **test**: 5 unseen participants, 511 windows | **0.95** | **0.95** |
+| WISDM (6 act.) | Plain LSTM + sliding window | test | 0.91 | 0.91 |
+| WISDM (6 act.) | Attention-LSTM, no sliding window | test | 0.91 | 0.91 |
+| WISDM (6 act.) | Plain LSTM, no sliding window | test | 0.81 | 0.81 |
+| UCI-HAPT (7) | Attention-LSTM + augmentation | validation (held-out participants) | 0.97 | 0.94 |
+| KU-HAR (5) | Attention-LSTM + augmentation | validation | 0.92 | 0.92 |
+| UniMiB-SHAR (5) | CNN + 2×LSTM + attention + augmentation | validation (held-out participants) | 0.88 | 0.78 |
+| FORTH-TRACE | Attention-LSTM | validation (held-out participants) | 0.91 | 0.78 |
 
-Matriz de confusão no conjunto de teste do WISDM. As classes são 0 andar, 1 correr, 2 escadas, 3 sentar, 4 pegar bola e 5 bater palmas:
+Confusion matrix on the WISDM test set. Classes: 0 walking, 1 jogging, 2 stairs, 3 sitting, 4 playing catch, 5 clapping.
 
-<p align="center"><img src="docs/img/wisdm_confusion_matrix_test.png" width="420" alt="Matriz de confusão do Attention-LSTM no conjunto de teste do WISDM"></p>
+<p align="center"><img src="docs/img/wisdm_confusion_matrix_test.png" width="420" alt="Attention-LSTM confusion matrix on the WISDM test set"></p>
 
-O principal erro é confundir _pegar bola_ com _andar_ (9 de 85 janelas). As duas atividades envolvem deslocamento do braço com o corpo em movimento.
+The main error is mistaking _playing catch_ for _walking_ (9 of 85 windows). Both involve arm movement while the body is moving.
 
-**Ablação de augmentation no FORTH-TRACE** (CNN + 2×LSTM + atenção): aplicadas isoladamente, as técnicas variaram entre 0,67 e 0,88 de acurácia. O F1 macro ficou entre 0,38 e 0,68. Rotação e translação foi a técnica que mais ajudou as classes minoritárias, e _time warping_ sozinho piorou o resultado. Os notebooks estão em `experiments/har_forth_trace_*_only_*.ipynb`.
+**Augmentation ablation on FORTH-TRACE** (CNN + 2×LSTM + attention): applied one at a time, the techniques ranged from 0.67 to 0.88 accuracy, with macro-F1 between 0.38 and 0.68. Rotation and translation helped the minority classes the most, while time warping alone made results worse. The notebooks are in `experiments/har_forth_trace_*_only_*.ipynb`.
 
-## Linha do tempo
+## Timeline
 
-Reconstruída a partir do histórico de commits:
+Reconstructed from the commit history:
 
-| Período      | Etapa                                                                                                                                                                      |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| jan–fev/2024 | Sincronização de acelerômetro e giroscópio do WISDM (relógio e celular); primeiras LSTMs com Keras Tuner (incluindo a bidirecional); testes com subconjuntos de atividades |
-| mar/2024     | Validação por grupos de participantes (k-fold), ConvLSTM e o experimento de biometria                                                                                      |
-| abr/2024     | Baseline final: LSTM com 6 atividades, com e sem janela deslizante                                                                                                         |
-| set/2024     | Attention-LSTM (+4 p.p. sobre o baseline) e exportação para TFLite                                                                                                         |
-| nov–dez/2024 | Generalização para UCI-HAPT, KU-HAR, UniMiB-SHAR e FORTH-TRACE; CNN + 2×LSTM + atenção; ablação de data augmentation                                                       |
-| 2026         | Organização do repositório (`notebooks/` e `experiments/`), limpeza das saídas e documentação                                                                              |
+| Period | Stage |
+| --- | --- |
+| Jan–Feb 2024 | Accelerometer/gyroscope synchronization for WISDM (watch and phone); first LSTMs with Keras Tuner (including the bidirectional one); tests with activity subsets |
+| Mar 2024 | Validation by participant groups (k-fold), ConvLSTM and the biometrics experiment |
+| Apr 2024 | Final baseline: LSTM on 6 activities, with and without sliding window |
+| Sep 2024 | Attention-LSTM (+4 p.p. over the baseline) and TFLite export |
+| Nov–Dec 2024 | Generalization to UCI-HAPT, KU-HAR, UniMiB-SHAR and FORTH-TRACE; CNN + 2×LSTM + attention; data augmentation ablation |
+| 2026 | Repository organization (`notebooks/` and `experiments/`), output cleanup and documentation |
 
-Os notebooks originais ficavam em `Code/DataPrep/`. Para ver a evolução de um deles desde 2024, use `git log --follow notebooks/03_wisdm_attention_lstm.ipynb`.
+The original notebooks lived in `Code/DataPrep/`. To follow one of them back to 2024, run `git log --follow notebooks/03_wisdm_attention_lstm.ipynb`.
 
-## Limitações e próximos passos
+## Limitations and next steps
 
-Para ler os resultados com o devido cuidado:
+To read the results with the right caveats:
 
-- **Só o WISDM tem conjunto de teste independente.** Nas outras bases, os números vêm de participantes de validação que também guiaram a busca de hiperparâmetros, então tendem a ser otimistas.
-- No KU-HAR, a separação foi feita por rótulo, e não por participante.
-- No WISDM, o desempenho cai para **0,75** quando se usam as 18 atividades. As atividades com as mãos (comer, escrever, digitar) são muito parecidas entre si.
-- No FORTH-TRACE e no UniMiB-SHAR, o F1 macro (0,78) fica bem abaixo da acurácia, por causa das classes minoritárias e das transições.
+- **Only WISDM has an independent test set.** For the other datasets, the numbers come from validation participants that also guided the hyperparameter search, so they are likely optimistic.
+- On KU-HAR, the split was done by label, not by participant.
+- On WISDM, performance drops to **0.75** with all 18 activities. Hand-oriented activities (eating, writing, typing) are very similar to one another.
+- On FORTH-TRACE and UniMiB-SHAR, macro-F1 (0.78) is well below accuracy because of minority classes and transitions.
 
-Próximos passos:
+Next steps:
 
-- validação cruzada por participante (_leave-subjects-out_) em todas as bases, com um conjunto de teste separado;
-- extrair as funções comuns (janelamento, augmentation, modelos) para um pacote `src/`, com testes;
-- medir a latência e o tamanho do modelo TFLite em um dispositivo real.
+- subject-wise cross-validation (leave-subjects-out) on every dataset, with a separate test set;
+- extract the shared code (windowing, augmentation, models) into a `src/` package with tests;
+- measure the latency and size of the TFLite model on a real device.
 
-## Como reproduzir
+## How to reproduce
 
 ```bash
 python -m venv .venv
@@ -141,37 +141,37 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-1. Baixe as bases seguindo [`Data/README.md`](Data/README.md).
-2. Abra o Jupyter **a partir da pasta `notebooks/`**. Os caminhos são relativos à raiz do repositório.
-3. Rode na ordem: `00` (pré-processamento do WISDM) → `03` (modelo principal) → `04` (exportação TFLite). Os notebooks `05` a `08` são independentes, um por base.
+1. Download the datasets following [`Data/README.md`](Data/README.md).
+2. Start Jupyter **from the `notebooks/` folder**. Paths are relative to the repository root.
+3. Run in order: `00` (WISDM preprocessing) → `03` (main model) → `04` (TFLite export). Notebooks `05` to `08` are independent, one per dataset.
 
-Os notebooks foram mantidos com as saídas da execução original: gráficos, relatórios de classificação e matrizes de confusão. Assim é possível ver os resultados sem rodar nada.
+The notebooks keep the outputs of the original runs (plots, classification reports and confusion matrices), so the results can be checked without running anything. They were written in Portuguese, so markdown cells and some variable names (e.g. `atividade` = activity, `acelerômetro` = accelerometer, `giroscópio` = gyroscope) are in Portuguese.
 
-## Estrutura do repositório
+## Repository structure
 
 ```
-├── notebooks/            # fluxo principal, numerado
-│   ├── 00_wisdm_preprocessamento.ipynb      sincroniza acelerômetro e giroscópio do smartwatch
-│   ├── 01_wisdm_analise_exploratoria.ipynb  distribuições e sinais por atividade
-│   ├── 02_wisdm_lstm_baseline.ipynb         LSTM simples (baseline)
-│   ├── 03_wisdm_attention_lstm.ipynb        modelo principal
-│   ├── 04_wisdm_exportacao_tflite.ipynb     conversão e inferência TFLite
+├── notebooks/            # main workflow, numbered
+│   ├── 00_wisdm_preprocessing.ipynb          syncs smartwatch accelerometer and gyroscope
+│   ├── 01_wisdm_exploratory_analysis.ipynb   distributions and signals per activity
+│   ├── 02_wisdm_lstm_baseline.ipynb          plain LSTM (baseline)
+│   ├── 03_wisdm_attention_lstm.ipynb         main model
+│   ├── 04_wisdm_tflite_export.ipynb          TFLite conversion and inference
 │   ├── 05_uci_hapt_attention_lstm.ipynb
 │   ├── 06_kuhar_attention_lstm.ipynb
 │   ├── 07_unimib_shar_cnn_lstm_attention.ipynb
 │   └── 08_forth_trace_attention_lstm.ipynb
-├── experiments/          # histórico de experimentos (ver experiments/README.md)
-├── Data/README.md        # como obter os dados
-├── docs/img/             # figuras usadas neste README
+├── experiments/          # experiment history (see experiments/README.md)
+├── Data/README.md        # how to get the data
+├── docs/img/             # figures used in this README
 └── requirements.txt
 ```
 
-## Tecnologias
+## Tech stack
 
 Python · TensorFlow/Keras · Keras Tuner · scikit-learn · imbalanced-learn · SciPy · pandas · NumPy · Matplotlib/Seaborn · TensorFlow Lite
 
-## Autor
+## Author
 
 **Cristiano Nascimento**: [LinkedIn](https://www.linkedin.com/in/cristiano-santana-nascimento) · [GitHub](https://github.com/cris33rj)
 
-Licença [MIT](LICENSE).
+[MIT](LICENSE) License.
