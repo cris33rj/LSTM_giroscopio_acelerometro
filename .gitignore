@@ -1,13 +1,24 @@
-﻿**/Data/
-**/Model
-**/Data/Raw
-2024*
+# Dados e artefatos gerados
+/Data/*
+!/Data/README.md
+Model/
+logs/
 *.csv
-*.pdf
-*.zip
-*.idea
-*.parquet
-*.py
-*.txt
-*.html
+*.npy
+*.tflite
+*.h5
+*.keras
 
+# Ambiente
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Editores / SO
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+~$*
